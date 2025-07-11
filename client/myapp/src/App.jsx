@@ -1,16 +1,26 @@
-// Update App.jsx with routing and Material UI setup:
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { AppBar, Toolbar, Typography, Container, Box, Button } from '@mui/material';
-import { Logger } from '../../../Middleware/dist';
 import URLShortener from './pages/URLShortener';
 import URLStats from './pages/URLStats';
 
-// Initialize logger
-const logger = new Logger({
-  enableConsole: true,
-  authToken: "your_auth_token_here"
-});
+// Import Logger and initialize it
+const Logger = {
+  debug: async (stack, pkg, message) => {
+    console.debug(`[${stack}:${pkg}] ${message}`);
+    // You can implement actual logger integration later
+  },
+  info: async (stack, pkg, message) => {
+    console.info(`[${stack}:${pkg}] ${message}`);
+  },
+  warn: async (stack, pkg, message) => {
+    console.warn(`[${stack}:${pkg}] ${message}`);
+  },
+  error: async (stack, pkg, message) => {
+    console.error(`[${stack}:${pkg}] ${message}`);
+  }
+};
 
 // Create theme
 const theme = createTheme({
@@ -45,8 +55,8 @@ function App() {
 
           <Container maxWidth="lg" sx={{ mt: 4 }}>
             <Routes>
-              <Route path="/" element={<URLShortener logger={logger} />} />
-              <Route path="/stats" element={<URLStats logger={logger} />} />
+              <Route path="/" element={<URLShortener logger={Logger} />} />
+              <Route path="/stats" element={<URLStats logger={Logger} />} />
             </Routes>
           </Container>
         </Box>
