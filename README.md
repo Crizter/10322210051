@@ -128,7 +128,7 @@ npm run dev
 - Real-time validation
 
 ### Terminal Output
-![Terminal Output](screenshots/terminal-output.png)
+![Terminal Output](screenshots/screenshots:terminal-output.png)
 - MongoDB connection status
 - Server startup logs
 - Request logging
