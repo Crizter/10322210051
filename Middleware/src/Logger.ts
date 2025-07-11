@@ -13,7 +13,7 @@ export class Logger {
       ...config
     };
 
-    // Format authorization header with token_type
+    //  authorization header 
     const authHeader = this.config.authToken 
       ? `Bearer ${this.config.authToken}`
       : undefined;
@@ -104,7 +104,7 @@ export class Logger {
     }
   }
 
-  // Convenience methods for different log levels
+  //  log levels
   async debug(stack: Stack, pkg: Package, message: string): Promise<string | null> {
     return this.log(stack, 'debug', pkg, message);
   }
@@ -126,7 +126,7 @@ export class Logger {
   }
 }
 
-// Static method for quick logging without instantiation
+
 export const Log = async (stack: Stack, level: Level, pkg: Package, message: string, authToken?: string): Promise<string | null> => {
   const logger = new Logger({ authToken });
   return logger.log(stack, level, pkg, message);

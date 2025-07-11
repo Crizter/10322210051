@@ -1,9 +1,7 @@
-/**
- * Usage examples for the logging middleware
- */
+
 import { Log, Logger, createLogger } from './src/index';
 
-// Example 1: Basic usage with the main Log function
+// usage with the main Log function
 async function basicUsageExample() {
   // Backend examples
   await Log('backend', 'error', 'handler', 'received string, expected bool');
@@ -16,7 +14,7 @@ async function basicUsageExample() {
   await Log('frontend', 'debug', 'hook', 'useEffect triggered for user data');
 }
 
-// Example 2: Using the Logger class with configuration
+//  logger class with configuration
 async function configuredLoggerExample() {
   const logger = new Logger({
     apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiIxMDMyMjIxMDA1MUBzdHUuc3JtdW5pdmVyc2l0eS5hYy5pbiIsImV4cCI6MTc1MjIxOTU0MCwiaWF0IjoxNzUyMjE4NjQwLCJpc3MiOiJBZmZvcmQgTWVkaWNhbCBUZWNobm9sb2dpZXMgUHJpdmF0ZSBMaW1pdGVkIiwianRpIjoiNjc4ZDk0YzEtOTFiNC00MmIyLTgzZjYtZDBkOTIzY2E5MDFhIiwibG9jYWxlIjoiZW4tSU4iLCJuYW1lIjoiaGFyc2ggc2hhcm1hIiwic3ViIjoiMGRkYmU3ZDktY2M0Ny00MzlmLWI3YjctNmJmZDIxNDdlN2VhIn0sImVtYWlsIjoiMTAzMjIyMTAwNTFAc3R1LnNybXVuaXZlcnNpdHkuYWMuaW4iLCJuYW1lIjoiaGFyc2ggc2hhcm1hIiwicm9sbE5vIjoiMTAzMjIyMTAwNTEiLCJhY2Nlc3NDb2RlIjoiRmJHZ0ZVIiwiY2xpZW50SUQiOiIwZGRiZTdkOS1jYzQ3LTQzOWYtYjdiNy02YmZkMjE0N2U3ZWEiLCJjbGllbnRTZWNyZXQiOiJEREpaQ1FlUm1RU3NzQnJIIn0.Rw0d3GXCgmm5TLZCGPkoR-mMJgsk-UnxJ4cGR2jK19Q',
@@ -31,18 +29,18 @@ async function configuredLoggerExample() {
   await logger.info('backend', 'auth', 'JWT token refreshed successfully');
 }
 
-// Example 3: Express.js middleware integration
+//  Express.js middleware integration
 function expressMiddlewareExample() {
   const express = require('express');
   const app = express();
 
-  // Request logging middleware
+  //  logging middleware
   app.use(async (req, res, next) => {
     await Log('backend', 'info', 'middleware', `${req.method} ${req.path} - ${req.ip}`);
     next();
   });
 
-  // Route with error handling
+  //  error handling
   app.get('/api/users/:id', async (req, res) => {
     try {
       await Log('backend', 'debug', 'handler', `Fetching user with ID: ${req.params.id}`);
@@ -62,7 +60,7 @@ function expressMiddlewareExample() {
   });
 }
 
-// Example 4: React component with logging
+//  react component with logging
 function ReactComponentExample() {
   const React = require('react');
   
@@ -104,7 +102,7 @@ function ReactComponentExample() {
   }
 }
 
-// Example 5: Database operations with logging
+// database example
 async function databaseExample() {
   const logger = createLogger({ enableConsole: true });
 
@@ -120,12 +118,12 @@ async function databaseExample() {
     }
   }
 
-  // Query operations
+  // Query eg
   async function findUser(email) {
     try {
       await logger.debug('backend', 'repository', `Searching for user with email: ${email}`);
       
-      // database query logic...
+    .
       const user = {}; // mock user
       
       if (user) {
@@ -142,14 +140,14 @@ async function databaseExample() {
   }
 }
 
-// Example 6: Cache operations
+// Cache eg
 async function cacheExample() {
   async function getCachedData(key) {
     try {
       await Log('backend', 'debug', 'cache', `Attempting to retrieve key: ${key}`);
       
-      // cache retrieval logic...
-      const data = null; // mock cache miss
+
+      const data = null;
       
       if (data) {
         await Log('backend', 'info', 'cache', `Cache hit for key: ${key}`);
@@ -177,7 +175,7 @@ async function cacheExample() {
   }
 }
 
-// Example 7: Authentication logging
+// auth log
 async function authExample() {
   async function loginUser(email, password) {
     try {

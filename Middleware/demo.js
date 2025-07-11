@@ -1,19 +1,17 @@
-#!/usr/bin/env node
 
 /**
- * Demo script showing the logging middleware in action
- * Run with: node demo.js
+ node demo.js
  */
 
 const { Logger, Log } = require('./dist/index.js');
 
-// Your authorization token
+//  authorization token
 const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiIxMDMyMjIxMDA1MUBzdHUuc3JtdW5pdmVyc2l0eS5hYy5pbiIsImV4cCI6MTc1MjIyMzQxOSwiaWF0IjoxNzUyMjIyNTE5LCJpc3MiOiJBZmZvcmQgTWVkaWNhbCBUZWNobm9sb2dpZXMgUHJpdmF0ZSBMaW1pdGVkIiwianRpIjoiOGY5NThmOTYtNTk0YS00Mjg4LWE2NTktZTQxOGJkZDQyYmFkIiwibG9jYWxlIjoiZW4tSU4iLCJuYW1lIjoiaGFyc2ggc2hhcm1hIiwic3ViIjoiMGRkYmU3ZDktY2M0Ny00MzlmLWI3YjctNmJmZDIxNDdlN2VhIn0sImVtYWlsIjoiMTAzMjIyMTAwNTFAc3R1LnNybXVuaXZlcnNpdHkuYWMuaW4iLCJuYW1lIjoiaGFyc2ggc2hhcm1hIiwicm9sbE5vIjoiMTAzMjIyMTAwNTEiLCJhY2Nlc3NDb2RlIjoiRmJHZ0ZVIiwiY2xpZW50SUQiOiIwZGRiZTdkOS1jYzQ3LTQzOWYtYjdiNy02YmZkMjE0N2U3ZWEiLCJjbGllbnRTZWNyZXQiOiJEREpaQ1FlUm1RU3NzQnJIIn0.peqYslGuB2hF7enDG05Zv9K2nxIIYowrql73zCQj1wM";
 
 async function demonstrateLogging() {
   console.log('🚀 Starting Logging Middleware Demo\n');
 
-  // Create logger instance with auth token
+  // logger instance
   const logger = new Logger({
     enableConsole: true,
     authToken: AUTH_TOKEN
@@ -47,12 +45,12 @@ async function demonstrateLogging() {
     logId = await logger.warn('frontend', 'utils', 'Local storage quota exceeded');
     console.log(`Log ID: ${logId}\n`);
 
-    // Test static Log function
+    // Test static Log 
     console.log('⚡ Testing Static Log Function:');
     logId = await Log('backend', 'info', 'middleware', 'Request processed successfully', AUTH_TOKEN);
     console.log(`Log ID: ${logId}\n`);
 
-    // Test convenience methods
+    // Test convenience 
     console.log('🎯 Testing Convenience Methods:');
     logId = await logger.debug('backend', 'controller', 'Processing user request');
     console.log(`Debug Log ID: ${logId}\n`);

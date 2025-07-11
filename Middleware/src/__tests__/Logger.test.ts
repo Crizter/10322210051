@@ -1,7 +1,8 @@
-import { Logger } from '../src/Logger';
-import { Stack, Level, Package } from '../src/types';
+import { Logger } from "../Logger";
+import { Stack, Level, Package } from "../types";
 
-// Mock axios to avoid actual API calls during tests
+
+// mock calls
 jest.mock('axios', () => ({
   create: jest.fn(() => ({
     post: jest.fn()

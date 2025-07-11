@@ -1,5 +1,5 @@
 {
-  "name": "@middleware/logging",
+  "name": "@harshsharma/logging-middleware",
   "version": "1.0.0",
   "description": "Reusable logging middleware for backend and frontend applications",
   "main": "dist/index.js",
