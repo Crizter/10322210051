@@ -2,16 +2,6 @@
 
 A reusable TypeScript/JavaScript logging middleware package that sends logs to a centralized logging API while providing comprehensive local logging capabilities.
 
-## Features
-
-- ✅ **Type-safe logging** with TypeScript support
-- ✅ **Stack validation** (backend/frontend) with appropriate package restrictions
-- ✅ **Multiple log levels** (debug, info, warn, error, fatal)
-- ✅ **API integration** with retry logic and error handling
-- ✅ **Console logging** with configurable output
-- ✅ **Flexible configuration** options
-- ✅ **Zero dependencies** in production (only axios for HTTP requests)
-
 ## Installation
 
 ```bash

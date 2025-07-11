@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const { urlValidationRules, validate } = require('./middleware/validator');
+const { urlValidationRules, shortcodeParamRules, validate } = require('./middleware/validator');
 const { URL } = require('url');
 const generateShortcode = require('./utils/shortcode');
 const Url = require('./models/Url');
-const { Logger } = require('../Middleware/dist');
+const { Logger } = require('@harshsharma/logging-middleware');
 const getMockGeoLocation = require('./utils/geoLocation');
 
 // Initialize logger globally
@@ -20,7 +20,9 @@ app.use(cors());
 app.use(express.json());
 
 // Application startup log
-logger.info('backend', 'service', 'URL Shortener service starting up');
+(async () => {
+  await logger.info('backend', 'service', 'URL Shortener service starting up');
+})();
 
 // Global error handler
 const errorHandler = async (err, req, res, next) => {
@@ -116,9 +118,7 @@ app.post('/shorturls',
 
 // Update GET endpoint to handle redirects and click tracking
 app.get('/shorturls/:shortcode', 
-  param('shortcode')
-    .isAlphanumeric()
-    .isLength({ min: 5, max: 7 }),
+  shortcodeParamRules,  // Use imported validation rules
   validate,
   async (req, res, next) => {
     try {
@@ -208,24 +208,25 @@ app.get('/health', async (req, res) => {
 // Register error handler last
 app.use(errorHandler);
 
-// Example usage of different log levels:
+// Example of logging best practices (wrapped in async function)
+const logExamples = async () => {
+  // Debug - For detailed information during development
+  await logger.debug('backend', 'handler', 'Processing request with params...');
 
-// Debug - For detailed information during development
-await logger.debug('backend', 'handler', 'Processing request with params...');
+  // Info - For general operational information
+  await logger.info('backend', 'service', 'Application started successfully');
 
-// Info - For general operational information
-await logger.info('backend', 'service', 'Application started successfully');
+  // Warn - For potentially harmful situations
+  await logger.warn('backend', 'handler', 'Rate limit threshold reached');
 
-// Warn - For potentially harmful situations
-await logger.warn('backend', 'handler', 'Rate limit threshold reached');
+  // Error - For error events that might still allow the app to continue
+  await logger.error('backend', 'db', 'Database query failed');
 
-// Error - For error events that might still allow the app to continue
-await logger.error('backend', 'db', 'Database query failed');
+  // Fatal - For severe errors that prevent normal operation
+  await logger.fatal('backend', 'service', 'Critical service dependency unavailable');
+};
 
-// Fatal - For severe errors that prevent normal operation
-await logger.fatal('backend', 'service', 'Critical service dependency unavailable');
-
-// Example of structured logging in a route:
+// Example route with structured logging
 app.get('/example', async (req, res) => {
   try {
     await logger.debug('backend', 'handler', `Request received: ${req.path}`);
