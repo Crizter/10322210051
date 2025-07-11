@@ -13,52 +13,35 @@ export type Stack = 'backend' | 'frontend';
 export type Level = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 /**
- * Backend-only packages
- */
-export type BackendPackage = 
-  | 'cache'
-  | 'controller'
-  | 'cron_job'
-  | 'db'
-  | 'domain'
-  | 'handler'
-  | 'repository'
-  | 'route'
-  | 'service';
-
-/**
- * Frontend-only packages
- */
-export type FrontendPackage = 
-  | 'api'
-  | 'component'
-  | 'hook'
-  | 'page'
-  | 'state'
-  | 'style';
-
-/**
  * Packages that can be used in both backend and frontend
  */
-export type SharedPackage = 
-  | 'auth'
-  | 'config'
-  | 'middleware'
-  | 'utils';
-
-/**
- * All valid package types
- */
-export type Package = BackendPackage | FrontendPackage | SharedPackage;
+export type Package = 
+  // Backend only packages
+  | 'cache' | 'controller' | 'cron_job' | 'db' | 'domain' 
+  | 'handler' | 'repository' | 'route' | 'service'
+  // Frontend only packages  
+  | 'api' | 'component' | 'hook' | 'page' | 'state' | 'style'
+  // Shared packages
+  | 'auth' | 'config' | 'middleware' | 'utils';
 
 /**
  * Log request payload
  */
-export interface LogRequest {
+export interface LogEntry {
   stack: Stack;
   level: Level;
   package: Package;
   message: string;
+}
+
+/**
+ * Logger configuration options
+ */
+export interface LoggerConfig {
+  enableConsole?: boolean;
+  retryAttempts?: number;
+  retryDelay?: number;
+  authToken?: string;
 }
 
 /**
@@ -67,18 +50,6 @@ export interface LogRequest {
 export interface LogResponse {
   logID: string;
   message: string;
-}
-
-/**
- * Logger configuration options
- */
-export interface LoggerConfig {
-  apiUrl?: string;
-  apiKey?: string;
-  timeout?: number;
-  retryAttempts?: number;
-  enableConsole?: boolean;
-  environment?: 'development' | 'staging' | 'production';
 }
 
 /**

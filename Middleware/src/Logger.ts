@@ -1,196 +1,133 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { 
-  Stack, 
-  Level, 
-  Package, 
-  LogRequest, 
-  LogResponse, 
-  LoggerConfig, 
-  ILogger,
-  BackendPackage,
-  FrontendPackage 
-} from './types';
+import axios, { AxiosInstance, AxiosError } from 'axios';
+import { Stack, Level, Package, LoggerConfig, LogEntry } from './types';
 
-/**
- * Logger class that implements the logging middleware
- */
-export class Logger implements ILogger {
-  private api: AxiosInstance;
-  private config: Required<LoggerConfig>;
+export class Logger {
+  private axiosInstance: AxiosInstance;
+  private config: LoggerConfig;
 
   constructor(config: LoggerConfig = {}) {
     this.config = {
-      apiUrl: config.apiUrl || 'http://20.244.56.144/evaluation-service/logs',
-      apiKey: config.apiKey || '',
-      timeout: config.timeout || 10000,
-      retryAttempts: config.retryAttempts || 3,
-      enableConsole: config.enableConsole ?? true,
-      environment: config.environment || 'development'
+      enableConsole: true,
+      retryAttempts: 3,
+      retryDelay: 1000,
+      ...config
     };
 
-    this.api = axios.create({
-      baseURL: this.config.apiUrl,
-      timeout: this.config.timeout,
-     headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiIxMDMyMjIxMDA1MUBzdHUuc3JtdW5pdmVyc2l0eS5hYy5pbiIsImV4cCI6MTc1MjIxOTU0MCwiaWF0IjoxNzUyMjE4NjQwLCJpc3MiOiJBZmZvcmQgTWVkaWNhbCBUZWNobm9sb2dpZXMgUHJpdmF0ZSBMaW1pdGVkIiwianRpIjoiNjc4ZDk0YzEtOTFiNC00MmIyLTgzZjYtZDBkOTIzY2E5MDFhIiwibG9jYWxlIjoiZW4tSU4iLCJuYW1lIjoiaGFyc2ggc2hhcm1hIiwic3ViIjoiMGRkYmU3ZDktY2M0Ny00MzlmLWI3YjctNmJmZDIxNDdlN2VhIn0sImVtYWlsIjoiMTAzMjIyMTAwNTFAc3R1LnNybXVuaXZlcnNpdHkuYWMuaW4iLCJuYW1lIjoiaGFyc2ggc2hhcm1hIiwicm9sbE5vIjoiMTAzMjIyMTAwNTEiLCJhY2Nlc3NDb2RlIjoiRmJHZ0ZVIiwiY2xpZW50SUQiOiIwZGRiZTdkOS1jYzQ3LTQzOWYtYjdiNy02YmZkMjE0N2U3ZWEiLCJjbGllbnRTZWNyZXQiOiJEREpaQ1FlUm1RU3NzQnJIIn0.Rw0d3GXCgmm5TLZCGPkoR-mMJgsk-UnxJ4cGR2jK19Q'
-  }
+    // Format authorization header with token_type
+    const authHeader = this.config.authToken 
+      ? `Bearer ${this.config.authToken}`
+      : undefined;
+
+    this.axiosInstance = axios.create({
+      baseURL: 'http://20.244.56.144',
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader && { 'Authorization': authHeader })
+      }
     });
   }
 
-  /**
-   * Validates if a package is valid for the given stack
-   */
-  private validatePackageForStack(stack: Stack, pkg: Package): boolean {
-    const backendPackages: BackendPackage[] = [
-      'cache', 'controller', 'cron_job', 'db', 'domain', 
-      'handler', 'repository', 'route', 'service'
-    ];
-    
-    const frontendPackages: FrontendPackage[] = [
-      'api', 'component', 'hook', 'page', 'state', 'style'
-    ];
-    
-    const sharedPackages = ['auth', 'config', 'middleware', 'utils'];
+  private validatePackageForStack(stack: Stack, pkg: Package): void {
+    const backendOnlyPackages: Package[] = ['cache', 'controller', 'cron_job', 'db', 'domain', 'handler', 'repository', 'route', 'service'];
+    const frontendOnlyPackages: Package[] = ['api', 'component', 'hook', 'page', 'state', 'style'];
+    const sharedPackages: Package[] = ['auth', 'config', 'middleware', 'utils'];
 
-    if (stack === 'backend') {
-      return backendPackages.includes(pkg as BackendPackage) || sharedPackages.includes(pkg);
-    } else {
-      return frontendPackages.includes(pkg as FrontendPackage) || sharedPackages.includes(pkg);
+    if (stack === 'backend' && frontendOnlyPackages.includes(pkg)) {
+      throw new Error(`Package '${pkg}' is not allowed for backend stack`);
+    }
+
+    if (stack === 'frontend' && backendOnlyPackages.includes(pkg)) {
+      throw new Error(`Package '${pkg}' is not allowed for frontend stack`);
     }
   }
 
-  /**
-   * Logs to console if enabled
-   */
-  private logToConsole(level: Level, stack: Stack, pkg: Package, message: string): void {
+  private async sendToAPI(logEntry: LogEntry): Promise<string | null> {
+    for (let attempt = 1; attempt <= this.config.retryAttempts!; attempt++) {
+      try {
+        const response = await this.axiosInstance.post('/evaluation-service/logs', logEntry);
+        return response.data.logID;
+      } catch (error) {
+        if (attempt === this.config.retryAttempts) {
+          if (this.config.enableConsole) {
+            console.error(`Failed to send log to API after ${this.config.retryAttempts} attempts:`, error instanceof AxiosError ? error.message : error);
+          }
+          return null;
+        }
+        await new Promise(resolve => setTimeout(resolve, this.config.retryDelay! * attempt));
+      }
+    }
+    return null;
+  }
+
+  private logToConsole(stack: Stack, level: Level, pkg: Package, message: string): void {
     if (!this.config.enableConsole) return;
 
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] [${level.toUpperCase()}] [${stack}:${pkg}] ${message}`;
-
+    
     switch (level) {
-      case 'debug':
-        console.debug(logMessage);
-        break;
-      case 'info':
-        console.info(logMessage);
+      case 'fatal':
+      case 'error':
+        console.error(logMessage);
         break;
       case 'warn':
         console.warn(logMessage);
         break;
-      case 'error':
-      case 'fatal':
-        console.error(logMessage);
+      case 'debug':
+        console.debug(logMessage);
         break;
       default:
         console.log(logMessage);
     }
   }
 
-  /**
-   * Makes API call with retry logic
-   */
-  private async makeApiCall(payload: LogRequest, attempt: number = 1): Promise<LogResponse | null> {
-    try {
-      const response: AxiosResponse<LogResponse> = await this.api.post('', payload);
-      return response.data;
-    } catch (error) {
-      console.error(`Log API call failed (attempt ${attempt}/${this.config.retryAttempts}):`, error);
-      
-      if (attempt < this.config.retryAttempts) {
-        // Exponential backoff
-        const delay = Math.pow(2, attempt - 1) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return this.makeApiCall(payload, attempt + 1);
-      }
-      
-      return null;
-    }
-  }
-
-  /**
-   * Main logging function
-   */
-  async log(stack: Stack, level: Level, pkg: Package, message: string): Promise<LogResponse | null> {
-    // Validate inputs
-    if (!this.validatePackageForStack(stack, pkg)) {
-      const error = `Invalid package '${pkg}' for stack '${stack}'`;
-      console.error(error);
-      throw new Error(error);
-    }
-
-    // Always log to console first
-    this.logToConsole(level, stack, pkg, message);
-
-    // Prepare payload
-    const payload: LogRequest = {
+  async log(stack: Stack, level: Level, pkg: Package, message: string): Promise<string | null> {
+    this.validatePackageForStack(stack, pkg);
+    
+    const logEntry: LogEntry = {
       stack,
       level,
       package: pkg,
       message
     };
 
-    // Make API call
-    try {
-      return await this.makeApiCall(payload);
-    } catch (error) {
-      console.error('Failed to send log to API after all retries:', error);
+    this.logToConsole(stack, level, pkg, message);
+
+    if (this.config.authToken) {
+      return await this.sendToAPI(logEntry);
+    } else {
+      if (this.config.enableConsole) {
+        console.warn('No auth token provided, skipping API call');
+      }
       return null;
     }
   }
 
-  /**
-   * Debug level logging
-   */
-  async debug(stack: Stack, pkg: Package, message: string): Promise<LogResponse | null> {
+  // Convenience methods for different log levels
+  async debug(stack: Stack, pkg: Package, message: string): Promise<string | null> {
     return this.log(stack, 'debug', pkg, message);
   }
 
-  /**
-   * Info level logging
-   */
-  async info(stack: Stack, pkg: Package, message: string): Promise<LogResponse | null> {
+  async info(stack: Stack, pkg: Package, message: string): Promise<string | null> {
     return this.log(stack, 'info', pkg, message);
   }
 
-  /**
-   * Warning level logging
-   */
-  async warn(stack: Stack, pkg: Package, message: string): Promise<LogResponse | null> {
+  async warn(stack: Stack, pkg: Package, message: string): Promise<string | null> {
     return this.log(stack, 'warn', pkg, message);
   }
 
-  /**
-   * Error level logging
-   */
-  async error(stack: Stack, pkg: Package, message: string): Promise<LogResponse | null> {
+  async error(stack: Stack, pkg: Package, message: string): Promise<string | null> {
     return this.log(stack, 'error', pkg, message);
   }
 
-  /**
-   * Fatal level logging
-   */
-  async fatal(stack: Stack, pkg: Package, message: string): Promise<LogResponse | null> {
+  async fatal(stack: Stack, pkg: Package, message: string): Promise<string | null> {
     return this.log(stack, 'fatal', pkg, message);
   }
-
-  /**
-   * Update configuration
-   */
-  updateConfig(newConfig: Partial<LoggerConfig>): void {
-    this.config = { ...this.config, ...newConfig };
-    
-    // Recreate axios instance if URL or auth changed
-    if (newConfig.apiUrl || newConfig.apiKey) {
-      this.api = axios.create({
-        baseURL: this.config.apiUrl,
-        timeout: this.config.timeout,
-         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ...K19Q'
-        }
-      });
-    }
-  }
 }
+
+// Static method for quick logging without instantiation
+export const Log = async (stack: Stack, level: Level, pkg: Package, message: string, authToken?: string): Promise<string | null> => {
+  const logger = new Logger({ authToken });
+  return logger.log(stack, level, pkg, message);
+};
