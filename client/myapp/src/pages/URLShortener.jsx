@@ -8,10 +8,19 @@ import {
   Card,
   CardContent,
   Typography,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { format } from 'date-fns';
-import { shortenURL } from '../api/urlApi';
+
+const isValidUrl = (string) => {
+  try {
+    new URL(string);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
 
 const URLShortener = ({ logger }) => {
   const [urls, setUrls] = useState([{ 
@@ -21,6 +30,7 @@ const URLShortener = ({ logger }) => {
   }]);
   const [results, setResults] = useState([]);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -31,12 +41,15 @@ const URLShortener = ({ logger }) => {
         newErrors[`url-${index}`] = 'Invalid URL format';
       }
       
-      if (url.validity && (!Number.isInteger(+url.validity) || +url.validity <= 0)) {
-        newErrors[`validity-${index}`] = 'Validity must be a positive integer';
+      if (url.validity) {
+        const validityNum = parseInt(url.validity, 10);
+        if (isNaN(validityNum) || validityNum <= 0) {
+          newErrors[`validity-${index}`] = 'Validity must be a positive integer';
+        }
       }
       
-      if (url.shortcode && !/^[a-zA-Z0-9]+$/.test(url.shortcode)) {
-        newErrors[`shortcode-${index}`] = 'Shortcode must be alphanumeric';
+      if (url.shortcode && !/^[a-zA-Z0-9]{5,7}$/.test(url.shortcode)) {
+        newErrors[`shortcode-${index}`] = 'Shortcode must be 5-7 alphanumeric characters';
       }
     });
     return newErrors;
@@ -47,26 +60,50 @@ const URLShortener = ({ logger }) => {
     
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
-      logger.warn('frontend', 'component', 'Form validation failed');
+      await logger.warn('frontend', 'component', 'Form validation failed');
       setErrors(validationErrors);
       return;
     }
 
-    logger.info('frontend', 'component', 'Submitting URLs for shortening');
+    setLoading(true);
+    await logger.info('frontend', 'component', 'Submitting URLs for shortening');
 
     try {
-      const promises = urls.map(url => shortenURL(url));
-      const responses = await Promise.all(promises);
+      const responses = await Promise.all(
+        urls.map(async url => {
+          const response = await fetch('http://localhost:3000/shorturls', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              originalUrl: url.longUrl,
+              ...(url.validity && { validity: parseInt(url.validity, 10) }),
+              ...(url.shortcode && { shortcode: url.shortcode })
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to shorten URL');
+          }
+
+          return response.json();
+        })
+      );
       
-      logger.info('frontend', 'component', `Successfully shortened ${responses.length} URLs`);
+      await logger.info('frontend', 'component', `Successfully shortened ${responses.length} URLs`);
       
       setResults(responses);
       // Store in session storage
       sessionStorage.setItem('shortened_urls', JSON.stringify(responses));
+      setErrors({});
       
     } catch (error) {
-      logger.error('frontend', 'component', `Error shortening URLs: ${error.message}`);
-      setErrors({ submit: 'Failed to shorten URLs' });
+      await logger.error('frontend', 'component', `Error shortening URLs: ${error.message}`);
+      setErrors({ submit: error.message || 'Failed to shorten URLs' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,6 +115,16 @@ const URLShortener = ({ logger }) => {
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Shorten URLs
+      </Typography>
+
+      {errors.submit && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {errors.submit}
+        </Alert>
+      )}
+
       {urls.map((url, index) => (
         <Card key={index} sx={{ mb: 2 }}>
           <CardContent>
@@ -122,7 +169,7 @@ const URLShortener = ({ logger }) => {
                     setUrls(newUrls);
                   }}
                   error={!!errors[`shortcode-${index}`]}
-                  helperText={errors[`shortcode-${index}`]}
+                  helperText={errors[`shortcode-${index}`] || '5-7 alphanumeric characters'}
                 />
               </Grid>
             </Grid>
@@ -130,24 +177,23 @@ const URLShortener = ({ logger }) => {
         </Card>
       ))}
 
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
         <Button
           variant="outlined"
           onClick={addUrlField}
-          disabled={urls.length >= 5}
+          disabled={urls.length >= 5 || loading}
         >
           Add Another URL
         </Button>
+        <Button
+          type="submit"
+          variant="contained"
+          color="primary"
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Shorten URLs'}
+        </Button>
       </Box>
-
-      <Button
-        type="submit"
-        variant="contained"
-        color="primary"
-        fullWidth
-      >
-        Shorten URLs
-      </Button>
 
       {results.length > 0 && (
         <Box sx={{ mt: 4 }}>
@@ -161,7 +207,7 @@ const URLShortener = ({ logger }) => {
                   Original URL: {result.originalUrl}
                 </Typography>
                 <Typography variant="body1">
-                  Short URL: {result.shortUrl}
+                  Short URL: <a href={result.shortUrl} target="_blank" rel="noopener noreferrer">{result.shortUrl}</a>
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Expires: {format(new Date(result.expiry), 'PPpp')}
